@@ -1,4 +1,3 @@
-use clap::Parser;
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -12,7 +11,13 @@ use tokio::signal;
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    let config = Config::parse();
+    let config = match Config::load() {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            return ExitCode::from(1);
+        }
+    };
 
     if let Err(e) = config.validate() {
         eprintln!("Configuration error: {}", e);

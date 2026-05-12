@@ -28,6 +28,15 @@
 /test_output/
 /logs/
 
+# Claude
+.claude/
+
+# OpenCode
+.opencode/
+
+# Scripts
+/scripts/
+
 # Python
 __pycache__/
 *.py[cod]
