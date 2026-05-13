@@ -1,5 +1,15 @@
 # Telemetry Simulator - Agent Guide
 
+## Prerequisites
+
+Santa (macOS endpoint security) must be in Monitor mode for the Rust toolchain and compiled binaries to execute. Verify before building:
+
+```bash
+santactl status | grep -i mode  # Must show "Monitor"
+```
+
+If Santa is in Lockdown mode, builds and test runs will be blocked.
+
 ## Build Commands
 
 ### Build
@@ -38,12 +48,6 @@ cargo test -- --test-threads=1 # Run tests serially
 #### Test with Features
 ```bash
 cargo test --features stdout   # Run tests with stdout feature enabled
-```
-
-#### Python Verification Tests
-```bash
-cd tests
-pytest test_outputs.py -v      # Run Python verification tests
 ```
 
 ## Code Style Guidelines
@@ -369,9 +373,7 @@ telemetry-simulator/
 │   └── writer.rs          # Socket writing with length-prefix framing
 ├── tests/
 │   ├── common/mod.rs      # Test utilities (TestSimulator)
-│   ├── integration_test.rs # Integration tests
-│   ├── test_outputs.py    # Python verification tests
-│   └── test.sh            # Test runner script
+│   └── integration_test.rs # Integration tests
 └── docs/
     ├── SOCKET_API.md      # Socket protocol specification
     └── plans/             # Design documents
