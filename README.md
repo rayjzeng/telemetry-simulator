@@ -2,6 +2,8 @@
 
 A high-performance telemetry event simulator that generates realistic session and event data over Unix domain sockets. Useful for testing telemetry pipelines, analytics systems, and event-driven architectures.
 
+---
+
 ## Features
 
 - **Multi-Process Simulation**: Simulate multiple independent processes with isolated state
@@ -10,9 +12,66 @@ A high-performance telemetry event simulator that generates realistic session an
 - **Deterministic Output**: Seed-based random generation for reproducible tests
 - **Multiple Output Formats**: Unix socket (default), stdout JSON, or JSON file output
 
-## Documentation
+---
+
+## Execution Model Overview
+
+The telemetry simulator is a single-threaded asynchronous application that generates synthetic telemetry messages from multiple isolated processes, applies network delivery semantics, and outputs the results via Unix domain socket, standard output in JSON format, or to a JSON file.
+
+### Main Execution Flow
+
+The simulator operates in a continuous loop that:
+
+1. **Monitors exit conditions** based on the configured run mode:
+   - **Duration mode**: Runs for a specified number of seconds
+   - **Count mode**: Runs until each process has started a minimum number of sessions
+   - **Indefinite mode**: Runs until interrupted by Ctrl+C
+
+2. **Transitions to draining** when an exit condition is met or a shutdown signal is received. Once draining begins, no new sessions are initiated.
+
+3. **Generates and delivers messages** by repeatedly requesting the next available message from the multi-process generator and writing it to the configured output.
+
+4. **Terminates** when draining is complete and no more messages remain in the delivery queue.
+
+The system maintains a simulated timeline where each process has its own independent clock that advances based on exponentially-distributed inter-arrival times.
+
+### Multi-Process Isolation
+
+The simulator can model multiple independent processes, each operating as a completely isolated execution context.
+
+#### Isolation Guarantees
+
+**Independent Randomness**: Each process uses its own random number generator seeded with a combination of the global seed and the process identifier. This ensures deterministic but distinct behavior across processes when using the same seed.
+
+**Independent Clocks**: Each process maintains its own synthetic timeline that advances based on its event generation pattern. Process clocks are not synchronized and advance at different rates depending on activity.
+
+**Independent Sequence Numbers**: Every process maintains a monotonically increasing sequence counter starting from zero. Sequence numbers are unique within a process but not globally across processes.
+
+**Independent Session State**: Each process has its own complete session hierarchy state, including active paths, pending sessions, and level availability. Processes do not share session information and operate entirely independently.
+
+#### Process Selection
+
+During normal operation, the system randomly selects which process should generate the next message. This interleaves messages from different processes in the output stream, simulating concurrent execution.
+
+### Draining Mode Summary
+Draining mode is a graceful shutdown mechanism that ensures clean termination of the telemetry simulator.
+
+#### Guarantees
+1. **Session closure:** Each process ensures each started session receives a corresponding end message with proper timestamps and sequence numbers
+2. **No new sessions/events:** After draining begins, no new session start and event messages are generated
+3. **Message delivery:** All generated session-end messages and messages generated before draining (including delayed ones) are eventually emitted
+4. **Relaxed timing:** Messages are emitted regardless of whether their delivery time has been reached by process clocks, ensuring delayed messages are flushed
+
+#### Completion
+The system exits when draining mode is active AND the delivery queue is empty. If Ctrl+C occurs before completion, a final drain phase ensures all pending sessions are closed.
+
+---
+
+## Output Format
 
 - [Socket API Specification](docs/SOCKET_API.md) - Output format and protocol
+
+---
 
 ## Configuration Reference
 
@@ -669,6 +728,8 @@ Usage:
 telemetry-sim --config config/network-test.toml
 ```
 
+---
+
 ## Examples
 
 ### Basic Development
@@ -699,6 +760,8 @@ cargo run -- --interleave-prob 0.1 --mean-delay-ms 50 --drop-rate 0.05
 cargo run --features stdout -- --seed 12345 --stdout --duration-sec 10
 ```
 
+---
+
 ## Performance
 
 The simulator is designed for high throughput:
@@ -708,9 +771,13 @@ The simulator is designed for high throughput:
 - **Memory usage**: Minimal (stateless per message)
 - **CPU usage**: Efficient random number generation and serialization
 
+---
+
 ## License
 
 See LICENSE file for details.
+
+---
 
 ## Contributing
 
@@ -719,7 +786,3 @@ Contributions welcome! Please ensure:
 - Code is formatted (`cargo fmt`)
 - No clippy warnings (`cargo clippy`)
 - Documentation updated for user-facing changes
-
-## See Also
-
-- [Socket API Specification](docs/SOCKET_API.md) - Output protocol details
