@@ -121,6 +121,25 @@ impl ProcessSimulator {
         seq
     }
 
+    pub fn drain(&mut self) -> Vec<Message> {
+        let mut messages = Vec::new();
+        while let Some(entry) = self.pending_sessions.pop() {
+            if !entry.is_start {
+                let seq = self.next_sequence();
+                messages.push(Message::Session {
+                    session_id: entry.session_id,
+                    session_type: entry.session_type,
+                    timestamp_ns: entry.time_ns,
+                    is_start: false,
+                    version: 1,
+                    process_id: self.process_id,
+                    sequence_number: seq,
+                });
+            }
+        }
+        messages
+    }
+
     fn push_session_start(&mut self, session_type: &String) {
         let session_id = self.generate_id();
         let lambda = 1000.0 / (self.session_gap_mean_ms as f64);

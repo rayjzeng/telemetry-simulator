@@ -100,6 +100,32 @@ impl MultiProcessGenerator {
     }
 
     pub fn start_draining(&mut self) {
+        for process in &mut self.processes {
+            let drain_msgs = process.drain();
+            for msg in drain_msgs {
+                let event_time_ns = match &msg {
+                    Message::Event { timestamp_ns, .. } | Message::Session { timestamp_ns, .. } => {
+                        *timestamp_ns
+                    }
+                };
+                let process_id = process.process_id();
+                let sequence_number = match &msg {
+                    Message::Event {
+                        sequence_number, ..
+                    }
+                    | Message::Session {
+                        sequence_number, ..
+                    } => *sequence_number,
+                };
+                self.delivery_heap.push(PendingDelivery {
+                    delivery_time_ns: event_time_ns,
+                    event_time_ns,
+                    message: Some(msg),
+                    process_id,
+                    sequence_number,
+                });
+            }
+        }
         self.draining = true;
     }
 
