@@ -27,6 +27,8 @@
 # Test output
 /test_output/
 /logs/
+/configs/
+/out/
 
 # Claude
 .claude/
